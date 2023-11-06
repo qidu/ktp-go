@@ -615,7 +615,7 @@ func TestListenerNonOwnedPacketConn(t *testing.T) {
 	// Make it remember when it has been closed.
 	pconn := newClosedFlagPacketConn(c)
 
-	l, err := ServeConn(nil, 0, 0, pconn, 0)
+	l, err := ServeConn(nil, 0, 0, 0, pconn)
 	if err != nil {
 		panic(err)
 	}

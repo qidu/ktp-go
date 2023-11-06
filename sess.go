@@ -994,7 +994,7 @@ func ListenWithOptions(laddr string, block BlockCrypt, dataShards, parityShards 
 }
 
 // ServeConn serves KCP protocol for a single packet connection.
-func ServeConn(block BlockCrypt, dataShards, parityShards int, conn net.PacketConn, key uint32) (*Listener, error) {
+func ServeConn(block BlockCrypt, dataShards, parityShards int, key uint32, conn net.PacketConn) (*Listener, error) {
 	return serveConn(block, dataShards, parityShards, conn, false, key)
 }
 

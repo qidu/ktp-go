@@ -75,7 +75,7 @@ func TestLossyConn4(t *testing.T) {
 func testlink(t *testing.T, client *lossyconn.LossyConn, server *lossyconn.LossyConn, nodelay, interval, resend, nc int) {
 	t.Log("testing with nodelay parameters:", nodelay, interval, resend, nc)
 	sess, _ := NewConn2(server.LocalAddr(), nil, 0, 0, 0, client)
-	listener, _ := ServeConn(nil, 0, 0, server, 0)
+	listener, _ := ServeConn(nil, 0, 0, 0, server)
 	echoServer := func(l *Listener) {
 		for {
 			conn, err := l.AcceptKCP()
