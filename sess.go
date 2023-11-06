@@ -138,7 +138,7 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 	sess.ownConn = ownConn
 	sess.l = l
 	sess.block = block
-    sess.key = key
+    	sess.key = key
 	sess.recvbuf = make([]byte, mtuLimit)
 
 	// cast to writebatch conn
