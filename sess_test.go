@@ -57,7 +57,7 @@ func dialEcho(port int) (*UDPSession, error) {
 }
 
 func dialSink(port int) (*UDPSession, error) {
-	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0, 0)
+	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0, 0x1234)
 	if err != nil {
 		panic(err)
 	}
@@ -106,7 +106,7 @@ func listenTinyBufferEcho(port int) (net.Listener, error) {
 }
 
 func listenSink(port int) (net.Listener, error) {
-	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0, 0)
+	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0, 0x1234)
 }
 
 func echoServer(port int) net.Listener {
