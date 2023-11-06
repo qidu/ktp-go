@@ -22,4 +22,4 @@ require (
 
 go 1.21
 
-version = "v6.0.0"
+version = "v1.0.0"
