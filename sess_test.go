@@ -80,7 +80,8 @@ func dialTinyBufferEcho(port int) (*UDPSession, error) {
 	//block, _ := NewTEABlockCrypt(pass[:16])
 	//block, _ := NewAESBlockCrypt(pass)
 	block, _ := NewSalsa20BlockCrypt(pass)
-	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3, 0)
+	// sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0, 0x1234)
+	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3, 0x1234)
 	if err != nil {
 		panic(err)
 	}
@@ -102,7 +103,8 @@ func listenTinyBufferEcho(port int) (net.Listener, error) {
 	//block, _ := NewTEABlockCrypt(pass[:16])
 	//block, _ := NewAESBlockCrypt(pass)
 	block, _ := NewSalsa20BlockCrypt(pass)
-	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3, 0)
+	// return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0, 0x1234)
+	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3, 0x1234)
 }
 
 func listenSink(port int) (net.Listener, error) {

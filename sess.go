@@ -809,12 +809,18 @@ func (l *Listener) packetInput(data []byte, addr net.Addr) {
 			// packet with FEC
 			if fecFlag == typeData && len(data) >= fecHeaderSizePlus2+IKCP_OVERHEAD {
 				conv = binary.LittleEndian.Uint32(data[fecHeaderSizePlus2:])
+				if l.key != 0 {
+					conv ^= l.key
+				}
 				sn = binary.LittleEndian.Uint32(data[fecHeaderSizePlus2+IKCP_SN_OFFSET:])
 				convRecovered = true
 			}
 		} else {
 			// packet without FEC
 			conv = binary.LittleEndian.Uint32(data)
+			if l.key != 0 {
+				conv ^= l.key
+			}
 			sn = binary.LittleEndian.Uint32(data[IKCP_SN_OFFSET:])
 			convRecovered = true
 		}
