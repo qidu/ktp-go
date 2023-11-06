@@ -41,38 +41,56 @@ func currentMs() uint32 { return uint32(time.Since(refTime) / time.Millisecond) 
 type output_callback func(buf []byte, size int)
 
 /* encode 8 bits unsigned int */
-func ikcp_encode8u(p []byte, c byte) []byte {
+func ikcp_encode8u(p []byte, c byte, k uint32) []byte {
+    if k != 0 {
+        c ^= byte(0xFF & k);
+    }
 	p[0] = c
 	return p[1:]
 }
 
 /* decode 8 bits unsigned int */
-func ikcp_decode8u(p []byte, c *byte) []byte {
+func ikcp_decode8u(p []byte, k uint32, c *byte) []byte {
 	*c = p[0]
+    if k != 0 {
+        *c ^= byte(0xFF & k);
+    }
 	return p[1:]
 }
 
 /* encode 16 bits unsigned int (lsb) */
-func ikcp_encode16u(p []byte, w uint16) []byte {
+func ikcp_encode16u(p []byte, w uint16, k uint32) []byte {
+    if k != 0 {
+        w ^= uint16(0xFFFF & k);
+    }
 	binary.LittleEndian.PutUint16(p, w)
 	return p[2:]
 }
 
 /* decode 16 bits unsigned int (lsb) */
-func ikcp_decode16u(p []byte, w *uint16) []byte {
+func ikcp_decode16u(p []byte, k uint32, w *uint16) []byte {
 	*w = binary.LittleEndian.Uint16(p)
+    if k != 0 {
+        *w ^= uint16(0xFFFF & k);
+    }
 	return p[2:]
 }
 
 /* encode 32 bits unsigned int (lsb) */
-func ikcp_encode32u(p []byte, l uint32) []byte {
+func ikcp_encode32u(p []byte, l uint32, k uint32) []byte {
+    if k != 0 {
+        l ^= k;
+    }
 	binary.LittleEndian.PutUint32(p, l)
 	return p[4:]
 }
 
 /* decode 32 bits unsigned int (lsb) */
-func ikcp_decode32u(p []byte, l *uint32) []byte {
+func ikcp_decode32u(p []byte, k uint32, l *uint32) []byte {
 	*l = binary.LittleEndian.Uint32(p)
+    if k != 0 {
+        *l ^= k;
+    }
 	return p[4:]
 }
 
@@ -116,21 +134,22 @@ type segment struct {
 }
 
 // encode a segment into buffer
-func (seg *segment) encode(ptr []byte) []byte {
-	ptr = ikcp_encode32u(ptr, seg.conv)
-	ptr = ikcp_encode8u(ptr, seg.cmd)
-	ptr = ikcp_encode8u(ptr, seg.frg)
-	ptr = ikcp_encode16u(ptr, seg.wnd)
-	ptr = ikcp_encode32u(ptr, seg.ts)
-	ptr = ikcp_encode32u(ptr, seg.sn)
-	ptr = ikcp_encode32u(ptr, seg.una)
-	ptr = ikcp_encode32u(ptr, uint32(len(seg.data)))
+func (seg *segment) encode(ptr []byte, k uint32) []byte {
+	ptr = ikcp_encode32u(ptr, seg.conv, k)
+	ptr = ikcp_encode8u(ptr, seg.cmd, k)
+	ptr = ikcp_encode8u(ptr, seg.frg, k)
+	ptr = ikcp_encode16u(ptr, seg.wnd, k)
+	ptr = ikcp_encode32u(ptr, seg.ts, k)
+	ptr = ikcp_encode32u(ptr, seg.sn, k)
+	ptr = ikcp_encode32u(ptr, seg.una, k)
+	ptr = ikcp_encode32u(ptr, uint32(len(seg.data)), k)
 	atomic.AddUint64(&DefaultSnmp.OutSegs, 1)
 	return ptr
 }
 
 // KCP defines a single KCP connection
 type KCP struct {
+    key                                    uint32
 	conv, mtu, mss, state                  uint32
 	snd_una, snd_nxt, rcv_nxt              uint32
 	ssthresh                               uint32
@@ -167,8 +186,9 @@ type ackItem struct {
 // 'conv' must be equal in the connection peers, or else data will be silently rejected.
 //
 // 'output' function will be called whenever these is data to be sent on wire.
-func NewKCP(conv uint32, output output_callback) *KCP {
+func NewKCP(conv uint32, key uint32, output output_callback) *KCP {
 	kcp := new(KCP)
+    kcp.key = key
 	kcp.conv = conv
 	kcp.snd_wnd = IKCP_WND_SND
 	kcp.rcv_wnd = IKCP_WND_RCV
@@ -546,18 +566,18 @@ func (kcp *KCP) Input(data []byte, regular, ackNoDelay bool) int {
 			break
 		}
 
-		data = ikcp_decode32u(data, &conv)
+		data = ikcp_decode32u(data, kcp.key, &conv)
 		if conv != kcp.conv {
 			return -1
 		}
 
-		data = ikcp_decode8u(data, &cmd)
-		data = ikcp_decode8u(data, &frg)
-		data = ikcp_decode16u(data, &wnd)
-		data = ikcp_decode32u(data, &ts)
-		data = ikcp_decode32u(data, &sn)
-		data = ikcp_decode32u(data, &una)
-		data = ikcp_decode32u(data, &length)
+		data = ikcp_decode8u(data, kcp.key, &cmd)
+		data = ikcp_decode8u(data, kcp.key, &frg)
+		data = ikcp_decode16u(data, kcp.key, &wnd)
+		data = ikcp_decode32u(data, kcp.key, &ts)
+		data = ikcp_decode32u(data, kcp.key, &sn)
+		data = ikcp_decode32u(data, kcp.key, &una)
+		data = ikcp_decode32u(data, kcp.key, &length)
 		if len(data) < int(length) {
 			return -2
 		}
@@ -703,7 +723,7 @@ func (kcp *KCP) flush(ackOnly bool) uint32 {
 		// filter jitters caused by bufferbloat
 		if _itimediff(ack.sn, kcp.rcv_nxt) >= 0 || len(kcp.acklist)-1 == i {
 			seg.sn, seg.ts = ack.sn, ack.ts
-			ptr = seg.encode(ptr)
+			ptr = seg.encode(ptr, kcp.key)
 		}
 	}
 	kcp.acklist = kcp.acklist[0:0]
@@ -741,14 +761,14 @@ func (kcp *KCP) flush(ackOnly bool) uint32 {
 	if (kcp.probe & IKCP_ASK_SEND) != 0 {
 		seg.cmd = IKCP_CMD_WASK
 		makeSpace(IKCP_OVERHEAD)
-		ptr = seg.encode(ptr)
+		ptr = seg.encode(ptr, kcp.key)
 	}
 
 	// flush window probing commands
 	if (kcp.probe & IKCP_ASK_TELL) != 0 {
 		seg.cmd = IKCP_CMD_WINS
 		makeSpace(IKCP_OVERHEAD)
-		ptr = seg.encode(ptr)
+		ptr = seg.encode(ptr, kcp.key)
 	}
 
 	kcp.probe = 0
@@ -834,7 +854,7 @@ func (kcp *KCP) flush(ackOnly bool) uint32 {
 
 			need := IKCP_OVERHEAD + len(segment.data)
 			makeSpace(need)
-			ptr = segment.encode(ptr)
+			ptr = segment.encode(ptr, kcp.key)
 			copy(ptr, segment.data)
 			ptr = ptr[len(segment.data):]
 

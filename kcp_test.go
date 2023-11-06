@@ -74,8 +74,8 @@ func TestLossyConn4(t *testing.T) {
 
 func testlink(t *testing.T, client *lossyconn.LossyConn, server *lossyconn.LossyConn, nodelay, interval, resend, nc int) {
 	t.Log("testing with nodelay parameters:", nodelay, interval, resend, nc)
-	sess, _ := NewConn2(server.LocalAddr(), nil, 0, 0, client)
-	listener, _ := ServeConn(nil, 0, 0, server)
+	sess, _ := NewConn2(server.LocalAddr(), nil, 0, 0, 0, client)
+	listener, _ := ServeConn(nil, 0, 0, server, 0)
 	echoServer := func(l *Listener) {
 		for {
 			conn, err := l.AcceptKCP()
@@ -118,7 +118,7 @@ func testlink(t *testing.T, client *lossyconn.LossyConn, server *lossyconn.Lossy
 }
 
 func BenchmarkFlush(b *testing.B) {
-	kcp := NewKCP(1, func(buf []byte, size int) {})
+	kcp := NewKCP(1, 0, func(buf []byte, size int) {})
 	kcp.snd_buf = make([]segment, 1024)
 	for k := range kcp.snd_buf {
 		kcp.snd_buf[k].xmit = 1

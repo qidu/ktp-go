@@ -34,7 +34,7 @@ func dialEcho(port int) (*UDPSession, error) {
 	//block, _ := NewTEABlockCrypt(pass[:16])
 	//block, _ := NewAESBlockCrypt(pass)
 	block, _ := NewSalsa20BlockCrypt(pass)
-	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3)
+	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -57,7 +57,7 @@ func dialEcho(port int) (*UDPSession, error) {
 }
 
 func dialSink(port int) (*UDPSession, error) {
-	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0)
+	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +80,7 @@ func dialTinyBufferEcho(port int) (*UDPSession, error) {
 	//block, _ := NewTEABlockCrypt(pass[:16])
 	//block, _ := NewAESBlockCrypt(pass)
 	block, _ := NewSalsa20BlockCrypt(pass)
-	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3)
+	sess, err := DialWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -94,7 +94,7 @@ func listenEcho(port int) (net.Listener, error) {
 	//block, _ := NewTEABlockCrypt(pass[:16])
 	//block, _ := NewAESBlockCrypt(pass)
 	block, _ := NewSalsa20BlockCrypt(pass)
-	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 0)
+	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 0, 0)
 }
 func listenTinyBufferEcho(port int) (net.Listener, error) {
 	//block, _ := NewNoneBlockCrypt(pass)
@@ -102,11 +102,11 @@ func listenTinyBufferEcho(port int) (net.Listener, error) {
 	//block, _ := NewTEABlockCrypt(pass[:16])
 	//block, _ := NewAESBlockCrypt(pass)
 	block, _ := NewSalsa20BlockCrypt(pass)
-	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3)
+	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), block, 10, 3, 0)
 }
 
 func listenSink(port int) (net.Listener, error) {
-	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0)
+	return ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 0, 0, 0)
 }
 
 func echoServer(port int) net.Listener {
@@ -541,7 +541,7 @@ func TestSNMP(t *testing.T) {
 
 func TestListenerClose(t *testing.T) {
 	port := int(atomic.AddUint32(&baseport, 1))
-	l, err := ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 10, 3)
+	l, err := ListenWithOptions(fmt.Sprintf("127.0.0.1:%v", port), nil, 10, 3, 0)
 	if err != nil {
 		t.Fail()
 	}
@@ -579,7 +579,7 @@ func newClosedFlagPacketConn(c net.PacketConn) *closedFlagPacketConn {
 // https://github.com/xtaci/kcp-go/issues/165
 func TestListenerOwnedPacketConn(t *testing.T) {
 	// ListenWithOptions creates its own net.PacketConn.
-	l, err := ListenWithOptions("127.0.0.1:0", nil, 0, 0)
+	l, err := ListenWithOptions("127.0.0.1:0", nil, 0, 0, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -615,7 +615,7 @@ func TestListenerNonOwnedPacketConn(t *testing.T) {
 	// Make it remember when it has been closed.
 	pconn := newClosedFlagPacketConn(c)
 
-	l, err := ServeConn(nil, 0, 0, pconn)
+	l, err := ServeConn(nil, 0, 0, pconn, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -642,7 +642,7 @@ func TestUDPSessionOwnedPacketConn(t *testing.T) {
 	defer l.Close()
 
 	// DialWithOptions creates its own net.PacketConn.
-	client, err := DialWithOptions(l.Addr().String(), nil, 0, 0)
+	client, err := DialWithOptions(l.Addr().String(), nil, 0, 0, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -681,7 +681,7 @@ func TestUDPSessionNonOwnedPacketConn(t *testing.T) {
 	// Make it remember when it has been closed.
 	pconn := newClosedFlagPacketConn(c)
 
-	client, err := NewConn2(l.Addr(), nil, 0, 0, pconn)
+	client, err := NewConn2(l.Addr(), nil, 0, 0, 0, pconn)
 	if err != nil {
 		panic(err)
 	}
